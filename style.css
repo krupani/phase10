@@ -1,0 +1,235 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #F2F2F2;
+    margin: 0;
+    padding: 10px;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.container {
+    background-color: #FFFFFF;
+    max-width: 500px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 500px rgba(0, 0, 0, 0.2);
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+}
+
+#main-word {
+    font-size: 45px;
+    color: #333;
+    margin-top: 0;
+}
+
+#final-score {
+    font-size: 20px;
+}
+
+/* Player Input Styles */
+.player-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.player-input-row input {
+    flex: 1;
+    padding: 12px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.remove-player-btn {
+    background-color: #FF5733;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0;
+}
+
+/* Home Screen Player List */
+.player-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    margin: 8px 0;
+    background-color: #f8f8f8;
+    border-radius: 8px;
+    border-left: 4px solid #4CAF50;
+}
+
+.player-card.dealer {
+    border-left: 4px solid #FFD700;
+    background-color: #fff9e6;
+}
+
+.player-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex: 1;
+}
+
+.player-name {
+    font-weight: bold;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.dealer-star {
+    color: #FFD700;
+    font-size: 20px;
+}
+
+.player-phase {
+    font-size: 14px;
+    color: #666;
+}
+
+.player-points {
+    font-weight: bold;
+    font-size: 20px;
+    color: #333;
+}
+
+/* Round Screen Styles */
+.round-player-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 15px 0;
+    padding: 10px;
+    background-color: #f8f8f8;
+    border-radius: 8px;
+}
+
+.round-player-name {
+    width: 80px;
+    font-weight: bold;
+    text-align: left;
+}
+
+.round-player-phase {
+    font-size: 12px;
+    color: #666;
+    width: 60px;
+    text-align: center;
+}
+
+.round-player-input {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 80px;
+    -moz-appearance: textfield;
+}
+
+.round-player-input::-webkit-outer-spin-button,
+.round-player-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.round-player-toggle {
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+    accent-color: #4CAF50;
+    transform: scale(1.2);
+}
+
+/* Buttons */
+.buttons {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+button {
+    font-size: 16px;
+    padding: 12px 24px;
+    margin: 5px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: opacity 0.3s;
+}
+
+button:hover {
+    opacity: 0.8;
+}
+
+button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.green-button {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.red-button {
+    background-color: #FF5733;
+    color: white;
+}
+
+.yellow-button {
+    background-color: #FFD700;
+    color: black;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 480px) {
+    .container {
+        padding: 15px;
+        min-height: 90vh;
+    }
+    
+    #main-word {
+        font-size: 36px;
+    }
+    
+    .player-card {
+        padding: 10px;
+    }
+    
+    .player-name {
+        font-size: 16px;
+    }
+    
+    .round-player-row {
+        flex-wrap: wrap;
+    }
+    
+    .round-player-name {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+    
+    button {
+        padding: 15px 20px;
+        font-size: 18px;
+    }
+}
