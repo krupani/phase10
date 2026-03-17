@@ -7,7 +7,7 @@ let gameState = {
     roundsHistory: []
 };
 
-let editingRoundIndex = -1; // -1 means not editing, otherwise index of round being edited
+let isEditingMode = false; // Track if we're editing an existing round
 
 // Standard Phase 10 phases
 const PHASES = [
@@ -22,9 +22,6 @@ const PHASES = [
     "1 set of 5 + 1 set of 2",
     "1 set of 5 + 1 set of 3"
 ];
-
-// DOM Elements
-let currentScreen = 'setup';
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
@@ -77,7 +74,6 @@ function addPlayerInput() {
     playerRow.appendChild(removeBtn);
     playerInputs.appendChild(playerRow);
     
-    // Add input event listener to check when to enable start button
     input.addEventListener('input', updateStartButton);
 }
 
@@ -127,8 +123,7 @@ function startGame() {
             gameState.players.push({
                 name: input.value.trim(),
                 points: 0,
-                phase: 1,
-                completedPhaseLastRound: false
+                phase: 1
             });
         }
     });
@@ -137,9 +132,8 @@ function startGame() {
     gameState.roundNumber = 0;
     gameState.gameStarted = true;
     gameState.roundsHistory = [];
-    editingRoundIndex = -1;
+    isEditingMode = false;
     
-    // Show home screen
     document.getElementById('setup-screen').style.display = 'none';
     document.getElementById('home-screen').style.display = 'block';
     
@@ -150,7 +144,6 @@ function updateHomeScreen() {
     const playersList = document.getElementById('players-list');
     const dealerName = document.getElementById('dealer-name');
     
-    // Update dealer
     dealerName.textContent = gameState.players[gameState.currentDealerIndex].name;
     
     // Calculate current leader(s)
@@ -166,7 +159,6 @@ function updateHomeScreen() {
         });
     }
     
-    // Build players list
     playersList.innerHTML = '';
     gameState.players.forEach((player, index) => {
         const playerCard = document.createElement('div');
@@ -211,10 +203,10 @@ function showHistoryModal() {
         const reversedRounds = [...gameState.roundsHistory].reverse();
         
         reversedRounds.forEach((round, index) => {
-            const isLastRound = (index === 0); // Most recent round in reversed list is last actual round
+            const isLastRound = (index === 0);
             const actualRoundNumber = round.roundNumber;
             
-            // Find round winner(s) - players with lowest points in this round
+            // Find round winner(s)
             let minPoints = Math.min(...round.players.map(p => p.pointsEarned));
             const winners = round.players.filter(p => p.pointsEarned === minPoints).map(w => w.name);
             
@@ -226,7 +218,6 @@ function showHistoryModal() {
             }
             html += `</div>`;
             
-            // Player details for this round
             round.players.forEach(player => {
                 const isWinner = winners.includes(player.name);
                 html += `<div style="display: flex; justify-content: space-between; margin: 4px 0; padding: 2px 0; border-bottom: 1px dotted #eee;">`;
@@ -242,7 +233,6 @@ function showHistoryModal() {
         historyContent.innerHTML = html;
         roundCount.textContent = `Total: ${gameState.roundsHistory.length} rounds`;
         
-        // Add click handlers to round cards
         document.querySelectorAll('.round-history-card').forEach(card => {
             card.addEventListener('click', function() {
                 const roundNumber = parseInt(this.dataset.roundNumber);
@@ -259,70 +249,64 @@ function hideHistoryModal() {
 }
 
 function editLastRound(roundNumber) {
-    // Only allow editing the last round
     if (roundNumber === gameState.roundNumber) {
         hideHistoryModal();
-        loadRoundForEditing(roundNumber);
+        
+        // Find the round data
+        const roundData = gameState.roundsHistory.find(r => r.roundNumber === roundNumber);
+        if (!roundData) return;
+        
+        // Set editing mode
+        isEditingMode = true;
+        
+        // Revert player states to BEFORE this round
+        revertPlayersToBeforeRound(roundNumber);
+        
+        // Show round screen with pre-filled data
+        document.getElementById('round-number').textContent = roundNumber;
+        document.getElementById('home-screen').style.display = 'none';
+        document.getElementById('round-screen').style.display = 'block';
+        
+        // Build round input screen with pre-filled values
+        const roundPlayersList = document.getElementById('round-players-list');
+        roundPlayersList.innerHTML = '';
+        
+        gameState.players.forEach((player, index) => {
+            const roundPlayerData = roundData.players.find(p => p.name === player.name);
+            
+            const playerRow = document.createElement('div');
+            playerRow.className = 'round-player-row';
+            playerRow.dataset.playerIndex = index;
+            
+            playerRow.innerHTML = `
+                <div class="round-player-name">${player.name}</div>
+                <div class="round-player-phase">Phase ${player.phase}</div>
+                <input type="number" class="round-player-input" min="0" max="250" step="1" value="${roundPlayerData ? roundPlayerData.pointsEarned : 0}" inputmode="numeric" pattern="[0-9]*">
+                <label style="display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" class="round-player-toggle" ${roundPlayerData && roundPlayerData.phaseCompleted ? 'checked' : ''}> Phase done
+                </label>
+            `;
+            
+            roundPlayersList.appendChild(playerRow);
+        });
+        
+        document.getElementById('save-round-btn').disabled = false;
     } else {
         alert('You can only edit the most recent round (Round ' + gameState.roundNumber + ')');
     }
 }
 
-function loadRoundForEditing(roundNumber) {
-    // Find the round data
-    const roundData = gameState.roundsHistory.find(r => r.roundNumber === roundNumber);
-    if (!roundData) return;
-    
-    // Store that we're editing
-    editingRoundIndex = gameState.roundsHistory.indexOf(roundData);
-    
-    // Remove this round from history and revert player states
-    revertToRound(roundNumber - 1);
-    
-    // Show round screen with pre-filled data
-    document.getElementById('round-number').textContent = roundNumber;
-    document.getElementById('home-screen').style.display = 'none';
-    document.getElementById('round-screen').style.display = 'block';
-    
-    // Build round input screen with pre-filled values
-    const roundPlayersList = document.getElementById('round-players-list');
-    roundPlayersList.innerHTML = '';
-    
-    gameState.players.forEach((player, index) => {
-        const roundPlayerData = roundData.players.find(p => p.name === player.name);
-        
-        const playerRow = document.createElement('div');
-        playerRow.className = 'round-player-row';
-        playerRow.dataset.playerIndex = index;
-        
-        playerRow.innerHTML = `
-            <div class="round-player-name">${player.name}</div>
-            <div class="round-player-phase">Phase ${player.phase}</div>
-            <input type="number" class="round-player-input" min="0" max="250" step="1" value="${roundPlayerData ? roundPlayerData.pointsEarned : 0}" inputmode="numeric" pattern="[0-9]*">
-            <label style="display: flex; align-items: center; gap: 5px;">
-                <input type="checkbox" class="round-player-toggle" ${roundPlayerData && roundPlayerData.phaseCompleted ? 'checked' : ''}> Phase done
-            </label>
-        `;
-        
-        roundPlayersList.appendChild(playerRow);
-    });
-    
-    // Enable save button since values are pre-filled
-    document.getElementById('save-round-btn').disabled = false;
-}
-
-function revertToRound(roundNumber) {
-    // Reset players to initial state
+function revertPlayersToBeforeRound(roundNumber) {
+    // Reset all players
     gameState.players.forEach(p => {
         p.points = 0;
         p.phase = 1;
     });
     
-    // Remove rounds after the target round
-    gameState.roundsHistory = gameState.roundsHistory.filter(r => r.roundNumber <= roundNumber);
+    // Reapply all rounds BEFORE the target round
+    const roundsToApply = gameState.roundsHistory.filter(r => r.roundNumber < roundNumber);
     
-    // Reapply all remaining rounds
-    gameState.roundsHistory.forEach(round => {
+    roundsToApply.forEach(round => {
         round.players.forEach(roundPlayer => {
             const player = gameState.players.find(p => p.name === roundPlayer.name);
             if (player) {
@@ -333,9 +317,6 @@ function revertToRound(roundNumber) {
             }
         });
     });
-    
-    // Update round number
-    gameState.roundNumber = roundNumber;
 }
 
 function endGameImmediately() {
@@ -343,7 +324,6 @@ function endGameImmediately() {
         const rankings = calculateRankings();
         const winners = [];
         
-        // Get all top players (tied for first)
         if (rankings.length > 0) {
             const topPhase = rankings[0].phase;
             const topPoints = rankings[0].points;
@@ -355,17 +335,18 @@ function endGameImmediately() {
             });
         }
         
-        // Show winner screen with all winners
         showWinner(winners);
     }
 }
 
 function showRoundScreen() {
-    // Increment round number
-    gameState.roundNumber++;
+    // If not in editing mode, increment round number
+    if (!isEditingMode) {
+        gameState.roundNumber++;
+    }
+    
     document.getElementById('round-number').textContent = gameState.roundNumber;
     
-    // Build round input screen
     const roundPlayersList = document.getElementById('round-players-list');
     roundPlayersList.innerHTML = '';
     
@@ -386,18 +367,15 @@ function showRoundScreen() {
         roundPlayersList.appendChild(playerRow);
     });
     
-    // Add input listeners to enable/disable save button
     const inputs = document.querySelectorAll('.round-player-input');
     inputs.forEach(input => {
         input.addEventListener('input', checkRoundInputs);
     });
     
-    // Switch to round screen
     document.getElementById('home-screen').style.display = 'none';
     document.getElementById('round-screen').style.display = 'block';
     
-    // Disable save button initially
-    document.getElementById('save-round-btn').disabled = true;
+    document.getElementById('save-round-btn').disabled = !isEditingMode; // Enable if editing, disable if new round
 }
 
 function checkRoundInputs() {
@@ -414,13 +392,26 @@ function checkRoundInputs() {
 }
 
 function cancelRound() {
-    // If we were editing, revert the round number
-    if (editingRoundIndex !== -1) {
-        editingRoundIndex = -1;
-        // Reload the game state from history
-        revertToRound(gameState.roundsHistory.length);
-    } else {
-        gameState.roundNumber--;
+    if (isEditingMode) {
+        // If we were editing, we need to restore the original round data
+        const originalRoundData = gameState.roundsHistory.find(r => r.roundNumber === gameState.roundNumber);
+        if (originalRoundData) {
+            // Revert players to state BEFORE this round
+            revertPlayersToBeforeRound(gameState.roundNumber);
+            
+            // Reapply the original round
+            originalRoundData.players.forEach(roundPlayer => {
+                const player = gameState.players.find(p => p.name === roundPlayer.name);
+                if (player) {
+                    player.points += roundPlayer.pointsEarned;
+                    if (roundPlayer.phaseCompleted) {
+                        player.phase++;
+                    }
+                }
+            });
+        }
+        
+        isEditingMode = false;
     }
     
     document.getElementById('round-screen').style.display = 'none';
@@ -432,7 +423,6 @@ function saveRound() {
     const playerRows = document.querySelectorAll('.round-player-row');
     let phase10Completers = [];
     
-    // Store round data for history
     const roundData = {
         roundNumber: gameState.roundNumber,
         players: []
@@ -443,52 +433,46 @@ function saveRound() {
         const points = parseInt(row.querySelector('.round-player-input').value) || 0;
         const phaseCompleted = row.querySelector('.round-player-toggle').checked;
         
-        // Store round data
         roundData.players.push({
             name: gameState.players[playerIndex].name,
             pointsEarned: points,
-            phaseCompleted: phaseCompleted,
-            phaseBefore: gameState.players[playerIndex].phase
+            phaseCompleted: phaseCompleted
         });
         
-        // Update player points and phase
         gameState.players[playerIndex].points += points;
         
         if (phaseCompleted) {
-            const newPhase = gameState.players[playerIndex].phase + 1;
-            gameState.players[playerIndex].phase = newPhase;
+            gameState.players[playerIndex].phase++;
             
-            // Check if they completed Phase 10
-            if (newPhase === 11) { // Completed Phase 10
+            if (gameState.players[playerIndex].phase === 11) {
                 phase10Completers.push({
                     index: playerIndex,
-                    points: gameState.players[playerIndex].points,
-                    phase: gameState.players[playerIndex].phase
+                    points: gameState.players[playerIndex].points
                 });
             }
         }
     });
     
-    // If we were editing, remove the old round
-    if (editingRoundIndex !== -1) {
-        gameState.roundsHistory.splice(editingRoundIndex, 1);
-        editingRoundIndex = -1;
+    if (isEditingMode) {
+        // Remove the old round data
+        const indexToRemove = gameState.roundsHistory.findIndex(r => r.roundNumber === gameState.roundNumber);
+        if (indexToRemove !== -1) {
+            gameState.roundsHistory.splice(indexToRemove, 1);
+        }
+        isEditingMode = false;
+    } else {
+        // Only rotate dealer for new rounds, not for edits
+        gameState.currentDealerIndex = (gameState.currentDealerIndex + 1) % gameState.players.length;
     }
     
-    // Add to history
+    // Add the new/edited round data
     gameState.roundsHistory.push(roundData);
     
-    // Rotate dealer
-    gameState.currentDealerIndex = (gameState.currentDealerIndex + 1) % gameState.players.length;
-    
-    // Check for winner
     if (phase10Completers.length > 0) {
-        // Sort completers by points (lowest wins)
         phase10Completers.sort((a, b) => a.points - b.points);
         const winners = phase10Completers.map(c => gameState.players[c.index]);
         showWinner(winners);
     } else {
-        // Return to home screen
         document.getElementById('round-screen').style.display = 'none';
         document.getElementById('home-screen').style.display = 'block';
         updateHomeScreen();
@@ -496,33 +480,26 @@ function saveRound() {
 }
 
 function calculateRankings() {
-    // Create a copy of players to sort
     const playersForRanking = gameState.players.map(p => ({
         name: p.name,
-        phase: p.phase > 10 ? 10 : p.phase, // Cap at Phase 10 for ranking
-        points: p.points,
-        originalPhase: p.phase
+        phase: p.phase > 10 ? 10 : p.phase,
+        points: p.points
     }));
     
-    // Sort by phase (highest first), then by points (lowest first)
     playersForRanking.sort((a, b) => {
         if (a.phase !== b.phase) {
-            return b.phase - a.phase; // Higher phase first
+            return b.phase - a.phase;
         }
-        return a.points - b.points; // Lower points first if same phase
+        return a.points - b.points;
     });
     
     return playersForRanking;
 }
 
 function showWinner(winners) {
-    // winners can be an array of player objects
     const winnerArray = Array.isArray(winners) ? winners : [winners];
-    
-    // Calculate rankings for all players
     const rankings = calculateRankings();
     
-    // Build rankings table HTML
     let rankingsHtml = '<div style="margin: 20px 0; text-align: left;">';
     rankingsHtml += '<h3 style="text-align: center; margin-bottom: 10px;">Final Rankings</h3>';
     rankingsHtml += '<table style="width: 100%; border-collapse: collapse;">';
@@ -548,7 +525,6 @@ function showWinner(winners) {
     
     rankingsHtml += '</table></div>';
     
-    // Update winner screen
     if (winnerArray.length === 1) {
         document.getElementById('winner-name').textContent = winnerArray[0].name;
     } else {
@@ -556,12 +532,10 @@ function showWinner(winners) {
     }
     document.getElementById('final-score').innerHTML = rankingsHtml;
     
-    // Hide other screens
     document.getElementById('round-screen').style.display = 'none';
     document.getElementById('home-screen').style.display = 'none';
     document.getElementById('winner-screen').style.display = 'block';
     
-    // Start confetti
     startConfetti();
 }
 
@@ -617,7 +591,6 @@ function startConfetti() {
     
     const interval = setInterval(draw, 30);
     
-    // Stop confetti after 5 seconds
     setTimeout(() => {
         clearInterval(interval);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -625,7 +598,6 @@ function startConfetti() {
 }
 
 function resetGame() {
-    // Reset game state
     gameState = {
         players: [],
         currentDealerIndex: 0,
@@ -634,32 +606,13 @@ function resetGame() {
         roundsHistory: []
     };
     
-    editingRoundIndex = -1;
+    isEditingMode = false;
     
-    // Show setup screen
     document.getElementById('winner-screen').style.display = 'none';
     document.getElementById('setup-screen').style.display = 'block';
     
-    // Clear confetti
     const canvas = document.getElementById('confetti-canvas');
     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
     
-    // Reinitialize setup
     initializeSetupScreen();
-}
-
-// Save/Load functionality (ready for future implementation)
-function saveGameToJSON() {
-    return JSON.stringify(gameState, null, 2);
-}
-
-function loadGameFromJSON(json) {
-    try {
-        gameState = JSON.parse(json);
-        updateHomeScreen();
-        document.getElementById('setup-screen').style.display = 'none';
-        document.getElementById('home-screen').style.display = 'block';
-    } catch (e) {
-        alert('Invalid game file');
-    }
 }
