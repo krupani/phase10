@@ -73,11 +73,6 @@ body {
     border-left: 4px solid #4CAF50;
 }
 
-.player-card.dealer {
-    border-left: 4px solid #FFD700;
-    background-color: #fff9e6;
-}
-
 .player-info {
     display: flex;
     flex-direction: column;
