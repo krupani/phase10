@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Phase 10 Scorekeeper</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="container" id="app">
         <!-- Setup Screen -->
@@ -13,13 +15,41 @@
             <h1 id="main-word">Phase 10 Scoring</h1>
             <p>Enter player names in seating order (max 6)</p>
             <p style="font-size: 14px; color: #666;">* Dealer rotates based on this order</p>
-            
+
             <div id="player-inputs">
                 <!-- Player inputs will be generated here -->
             </div>
-            
+
             <button id="add-player-btn" class="yellow-button" style="margin-top: 5px;">+ Add Player</button>
-            <button id="start-game-btn" class="green-button" style="display: block; width: 80%; margin: 20px auto;" disabled>Start Game</button>
+
+            <div id="phase-selection"
+                style="margin: 20px 0; padding: 15px; background-color: #f8f8f8; border-radius: 8px;">
+                <p style="margin-top: 0; margin-bottom: 10px; font-weight: bold;">Phase Order:</p>
+                <div style="display: flex; justify-content: space-around; gap: 10px;">
+                    <label
+                        style="flex: 1; padding: 10px; background-color: #4CAF50; color: white; border-radius: 5px; cursor: pointer;">
+                        <input type="radio" name="phaseOrder" value="standard" checked style="margin-right: 5px;"> 🔄
+                        Standard
+                    </label>
+                    <label
+                        style="flex: 1; padding: 10px; background-color: #FF9800; color: white; border-radius: 5px; cursor: pointer;">
+                        <input type="radio" name="phaseOrder" value="reverse" style="margin-right: 5px;"> 🔁 Reverse
+                    </label>
+                    <label
+                        style="flex: 1; padding: 10px; background-color: #9C27B0; color: white; border-radius: 5px; cursor: pointer;">
+                        <input type="radio" name="phaseOrder" value="random" style="margin-right: 5px;"> 🎲 Random
+                    </label>
+                </div>
+            </div>
+
+            <button id="start-game-btn" class="green-button" style="display: block; width: 80%; margin: 20px auto;"
+                disabled>Start Game</button>
+
+            <br />
+            <div id="author">
+                <div>Made with &hearts; by <a href="https://linkedin.com/in/kushrupani" target="_blank">Kaushal
+                        Rupani</a></div>
+            </div>
         </div>
 
         <!-- Home Screen -->
@@ -27,33 +57,49 @@
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                 <h1 id="main-word" style="font-size: 32px; margin: 0;">Phase 10</h1>
                 <div style="display: flex; gap: 10px;">
-                    <button id="history-icon" class="yellow-button" style="width: 40px; height: 40px; border-radius: 50%; padding: 0; font-weight: bold; font-size: 20px;">📋</button>
-                    <button id="info-icon" class="yellow-button" style="width: 40px; height: 40px; border-radius: 50%; padding: 0; font-weight: bold; font-size: 20px;">i</button>
-                    <button id="end-game-icon" class="red-button" style="width: 40px; height: 40px; border-radius: 50%; padding: 0; font-weight: bold; font-size: 20px;">✕</button>
-                    <button id="home-add-round" class="green-button" style="width: 40px; height: 40px; border-radius: 50%; padding: 0; font-weight: bold; font-size: 24px;">+</button>
+                    <button id="history-icon" class="yellow-button"
+                        style="width: 40px; height: 40px; border-radius: 50%; padding: 0; font-weight: bold; font-size: 20px;">📋</button>
+                    <button id="info-icon" class="yellow-button"
+                        style="width: 40px; height: 40px; border-radius: 50%; padding: 0; font-weight: bold; font-size: 20px;">i</button>
+                    <button id="end-game-icon" class="red-button"
+                        style="width: 40px; height: 40px; border-radius: 50%; padding: 0; font-weight: bold; font-size: 20px;">✕</button>
+                    <button id="home-add-round" class="green-button"
+                        style="width: 40px; height: 40px; border-radius: 50%; padding: 0; font-weight: bold; font-size: 24px;">+</button>
                 </div>
             </div>
-            
-            <div id="dealer-indicator" style="background: #FFD700; padding: 5px; border-radius: 5px; margin-bottom: 10px; font-weight: bold;">
+
+            <div id="dealer-indicator"
+                style="background: #FFD700; padding: 5px; border-radius: 5px; margin-bottom: 10px; font-weight: bold;">
                 Dealer: <span id="dealer-name"></span>
             </div>
-            
+
             <div id="players-list" class="score">
                 <!-- Players will be listed here -->
+            </div>
+            <br />
+            <div id="author">
+                <div>Made with &hearts; by <a href="https://linkedin.com/in/kushrupani" target="_blank">Kaushal
+                        Rupani</a></div>
             </div>
         </div>
 
         <!-- Add Round Screen -->
         <div id="round-screen" class="screen" style="display: none;">
             <h2 id="main-word" style="font-size: 28px;">Round <span id="round-number">1</span></h2>
-            
+
             <div id="round-players-list" style="max-height: 400px; overflow-y: auto; margin: 10px 0;">
                 <!-- Round player inputs will be generated here -->
             </div>
-            
+
             <div class="buttons">
                 <button id="cancel-round-btn" class="red-button">Cancel</button>
                 <button id="save-round-btn" class="green-button" disabled>Save Round</button>
+            </div>
+            <br />
+            <br />
+            <div id="author">
+                <div>Made with &hearts; by <a href="https://linkedin.com/in/kushrupani" target="_blank">Kaushal
+                        Rupani</a></div>
             </div>
         </div>
 
@@ -63,11 +109,19 @@
             <div id="winner-name" style="font-size: 48px; font-weight: bold; margin: 20px 0;"></div>
             <div id="final-score" style="font-size: 24px; margin: 20px 0;"></div>
             <button id="new-game-btn" class="green-button" style="margin-top: 30px;">New Game</button>
+            <br />
+            <br />
+            <div id="author">
+                <div>Made with &hearts; by <a href="https://linkedin.com/in/kushrupani" target="_blank">Kaushal
+                        Rupani</a></div>
+            </div>
         </div>
 
         <!-- Phases Info Modal -->
-        <div id="phases-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;">
-            <div style="background: white; padding: 20px; border-radius: 10px; max-width: 300px; max-height: 80%; overflow-y: auto;">
+        <div id="phases-modal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;">
+            <div
+                style="background: white; padding: 20px; border-radius: 10px; max-width: 300px; max-height: 80%; overflow-y: auto;">
                 <h3 style="margin-top: 0;">Phase 10 Phases</h3>
                 <ol style="text-align: left; padding-left: 20px;">
                     <li><strong>Phase 1:</strong> 2 sets of 3</li>
@@ -86,8 +140,10 @@
         </div>
 
         <!-- History Modal -->
-        <div id="history-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;">
-            <div style="background: white; padding: 20px; border-radius: 10px; max-width: 90%; width: 450px; max-height: 80%; overflow-y: auto;">
+        <div id="history-modal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;">
+            <div
+                style="background: white; padding: 20px; border-radius: 10px; max-width: 90%; width: 450px; max-height: 80%; overflow-y: auto;">
                 <h3 style="margin-top: 0; display: flex; justify-content: space-between; align-items: center;">
                     Rounds History
                     <span id="history-round-count" style="font-size: 14px; color: #666;"></span>
@@ -95,17 +151,21 @@
                 <div id="history-content" style="text-align: left;">
                     <!-- History cards will be inserted here -->
                 </div>
-                <div style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 5px; font-size: 12px; color: #856404;">
+                <div
+                    style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 5px; font-size: 12px; color: #856404;">
                     ⓘ Tap on a round card to edit the last round
                 </div>
-                <button id="close-history-btn" class="yellow-button" style="width: 100%; margin-top: 15px;">Close</button>
+                <button id="close-history-btn" class="yellow-button"
+                    style="width: 100%; margin-top: 15px;">Close</button>
             </div>
         </div>
     </div>
 
     <!-- Confetti Canvas -->
-    <canvas id="confetti-canvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999;"></canvas>
-
+    <canvas id="confetti-canvas"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999;">
+    </canvas>
     <script src="script.js"></script>
 </body>
+
 </html>
