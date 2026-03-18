@@ -4,13 +4,15 @@ let gameState = {
     currentDealerIndex: 0,
     roundNumber: 0,
     gameStarted: false,
-    roundsHistory: []
+    roundsHistory: [],
+    phaseOrder: [], // Will store the actual phase sequence
+    phaseOrderType: 'standard' // standard, reverse, or random
 };
 
 let isEditingMode = false; // Track if we're editing an existing round
 
-// Standard Phase 10 phases
-const PHASES = [
+// Phase descriptions
+const PHASE_DESCRIPTIONS = [
     "2 sets of 3",
     "1 set of 3 + 1 run of 4",
     "1 set of 4 + 1 run of 4",
@@ -114,9 +116,49 @@ function attachEventListeners() {
     document.getElementById('new-game-btn').addEventListener('click', resetGame);
 }
 
+function generatePhaseOrder(type) {
+    let order = [];
+    
+    switch(type) {
+        case 'standard':
+            // Standard 1 to 10
+            order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+            break;
+            
+        case 'reverse':
+            // Reverse 10 to 1
+            order = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+            break;
+            
+        case 'random':
+            // Random shuffle of 1-10
+            order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+            for (let i = order.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [order[i], order[j]] = [order[j], order[i]];
+            }
+            break;
+    }
+    
+    return order;
+}
+
 function startGame() {
     const inputs = document.querySelectorAll('.player-input-row input');
+    const phaseOrderRadios = document.getElementsByName('phaseOrder');
+    let selectedPhaseType = 'standard';
+    
+    // Get selected phase order
+    for (let radio of phaseOrderRadios) {
+        if (radio.checked) {
+            selectedPhaseType = radio.value;
+            break;
+        }
+    }
+    
     gameState.players = [];
+    gameState.phaseOrderType = selectedPhaseType;
+    gameState.phaseOrder = generatePhaseOrder(selectedPhaseType);
     
     inputs.forEach(input => {
         if (input.value.trim() !== '') {
@@ -166,13 +208,20 @@ function updateHomeScreen() {
         
         const isLeader = leaders.includes(player.name);
         
+        // Get actual phase number and description
+        const currentPhaseNum = player.phase > 10 ? 10 : player.phase;
+        const actualPhaseIndex = gameState.phaseOrder[currentPhaseNum - 1] - 1;
+        const phaseDescription = PHASE_DESCRIPTIONS[actualPhaseIndex];
+        
         playerCard.innerHTML = `
             <div class="player-info">
                 <div class="player-name">
                     ${player.name}
                     ${isLeader ? '<span class="dealer-star">👑</span>' : ''}
                 </div>
-                <div class="player-phase">Phase ${player.phase > 10 ? 10 : player.phase}</div>
+                <div class="player-phase" style="font-size: 12px; color: #666;">
+                    Phase ${currentPhaseNum}: ${phaseDescription}
+                </div>
             </div>
             <div class="player-points">${player.points}</div>
         `;
@@ -182,6 +231,37 @@ function updateHomeScreen() {
 }
 
 function showPhasesModal() {
+    const modalContent = document.querySelector('#phases-modal > div');
+    let phasesList = '<h3 style="margin-top: 0;">';
+    
+    // Add title based on order type
+    switch(gameState.phaseOrderType) {
+        case 'standard':
+            phasesList += 'Standard Phase Order (1→10)';
+            break;
+        case 'reverse':
+            phasesList += 'Reverse Phase Order (10→1)';
+            break;
+        case 'random':
+            phasesList += 'Random Phase Order';
+            break;
+    }
+    phasesList += '</h3><ol style="text-align: left; padding-left: 20px;">';
+    
+    // Display phases in current order
+    for (let i = 0; i < gameState.phaseOrder.length; i++) {
+        const phaseNumber = gameState.phaseOrder[i];
+        phasesList += `<li><strong>Phase ${i + 1}:</strong> ${PHASE_DESCRIPTIONS[phaseNumber - 1]}</li>`;
+    }
+    
+    phasesList += '</ol><button id="close-modal-btn" class="yellow-button" style="width: 100%;">Close</button>';
+    
+    // Update modal content
+    document.querySelector('#phases-modal > div').innerHTML = phasesList;
+    
+    // Re-attach close button event
+    document.getElementById('close-modal-btn').addEventListener('click', hidePhasesModal);
+    
     document.getElementById('phases-modal').style.display = 'flex';
 }
 
@@ -274,13 +354,18 @@ function editLastRound(roundNumber) {
         gameState.players.forEach((player, index) => {
             const roundPlayerData = roundData.players.find(p => p.name === player.name);
             
+            // Get phase description
+            const currentPhaseNum = player.phase > 10 ? 10 : player.phase;
+            const actualPhaseIndex = gameState.phaseOrder[currentPhaseNum - 1] - 1;
+            const phaseDescription = PHASE_DESCRIPTIONS[actualPhaseIndex];
+            
             const playerRow = document.createElement('div');
             playerRow.className = 'round-player-row';
             playerRow.dataset.playerIndex = index;
             
             playerRow.innerHTML = `
                 <div class="round-player-name">${player.name}</div>
-                <div class="round-player-phase">Phase ${player.phase}</div>
+                <div class="round-player-phase" title="${phaseDescription}">P${currentPhaseNum}</div>
                 <input type="number" class="round-player-input" min="0" max="250" step="1" value="${roundPlayerData ? roundPlayerData.pointsEarned : 0}" inputmode="numeric" pattern="[0-9]*">
                 <label style="display: flex; align-items: center; gap: 5px;">
                     <input type="checkbox" class="round-player-toggle" ${roundPlayerData && roundPlayerData.phaseCompleted ? 'checked' : ''}> Phase done
@@ -355,9 +440,14 @@ function showRoundScreen() {
         playerRow.className = 'round-player-row';
         playerRow.dataset.playerIndex = index;
         
+        // Get phase description for tooltip
+        const currentPhaseNum = player.phase > 10 ? 10 : player.phase;
+        const actualPhaseIndex = gameState.phaseOrder[currentPhaseNum - 1] - 1;
+        const phaseDescription = PHASE_DESCRIPTIONS[actualPhaseIndex];
+        
         playerRow.innerHTML = `
             <div class="round-player-name">${player.name}</div>
-            <div class="round-player-phase">Phase ${player.phase}</div>
+            <div class="round-player-phase" title="${phaseDescription}">P${currentPhaseNum}: ${phaseDescription}</div>
             <input type="number" class="round-player-input" min="0" max="250" step="1" value="0" inputmode="numeric" pattern="[0-9]*">
             <label style="display: flex; align-items: center; gap: 5px;">
                 <input type="checkbox" class="round-player-toggle"> Phase done
@@ -375,7 +465,7 @@ function showRoundScreen() {
     document.getElementById('home-screen').style.display = 'none';
     document.getElementById('round-screen').style.display = 'block';
     
-    document.getElementById('save-round-btn').disabled = !isEditingMode; // Enable if editing, disable if new round
+    document.getElementById('save-round-btn').disabled = !isEditingMode;
 }
 
 function checkRoundInputs() {
@@ -603,13 +693,23 @@ function resetGame() {
         currentDealerIndex: 0,
         roundNumber: 0,
         gameStarted: false,
-        roundsHistory: []
+        roundsHistory: [],
+        phaseOrder: [],
+        phaseOrderType: 'standard'
     };
     
     isEditingMode = false;
     
     document.getElementById('winner-screen').style.display = 'none';
     document.getElementById('setup-screen').style.display = 'block';
+    
+    // Reset radio button to standard
+    const radios = document.getElementsByName('phaseOrder');
+    for (let radio of radios) {
+        if (radio.value === 'standard') {
+            radio.checked = true;
+        }
+    }
     
     const canvas = document.getElementById('confetti-canvas');
     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
