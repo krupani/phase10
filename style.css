@@ -1,3 +1,8 @@
+html, body {
+    /* Prevent pull-to-refresh and bounce effects on mobile browsers */
+    overscroll-behavior-y: contain;
+}
+
 body {
     font-family: Arial, sans-serif;
     text-align: center;

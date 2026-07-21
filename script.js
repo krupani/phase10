@@ -425,12 +425,10 @@ function endGameImmediately() {
 }
 
 function showRoundScreen() {
-    // If not in editing mode, increment round number
-    if (!isEditingMode) {
-        gameState.roundNumber++;
-    }
+    // Determine target round number without mutating gameState prematurely
+    const targetRoundNumber = isEditingMode ? gameState.roundNumber : gameState.roundNumber + 1;
     
-    document.getElementById('round-number').textContent = gameState.roundNumber;
+    document.getElementById('round-number').textContent = targetRoundNumber;
     
     const roundPlayersList = document.getElementById('round-players-list');
     roundPlayersList.innerHTML = '';
@@ -513,6 +511,11 @@ function saveRound() {
     const playerRows = document.querySelectorAll('.round-player-row');
     let phase10Completers = [];
     
+    // If saving a new round, increment state here
+    if (!isEditingMode) {
+        gameState.roundNumber++;
+    }
+
     const roundData = {
         roundNumber: gameState.roundNumber,
         players: []
