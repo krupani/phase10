@@ -233,3 +233,24 @@ button:disabled {
         font-size: 18px;
     }
 }
+
+/* ===== NEW FEATURE STYLES ===== */
+.past-game-card {
+    padding: 12px;
+    border-radius: 8px;
+    border: 2px solid #ccc;
+    cursor: pointer;
+    font-size: 14px;
+    transition: transform 0.2s;
+}
+.past-game-card:active {
+    transform: scale(0.98);
+}
+.past-game-card.natural {
+    border-color: #4CAF50;
+    background-color: #e8f5e9;
+}
+.past-game-card.manual {
+    border-color: #9C27B0;
+    background-color: #f3e5f5;
+}

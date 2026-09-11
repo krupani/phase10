@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Local Environment Files
+.env
+.env.local
+.env.*.local
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Agent
+.artifacts
+
+# Capacitor files (Generated assets that shouldn't be in the root)
+# Note: The 'android' and 'www' folders are tracked as source.

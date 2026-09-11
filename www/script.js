@@ -5,11 +5,12 @@ let gameState = {
     roundNumber: 0,
     gameStarted: false,
     roundsHistory: [],
-    phaseOrder: [], // Will store the actual phase sequence
-    phaseOrderType: 'standard' // standard, reverse, or random
+    phaseOrder: [], 
+    phaseOrderType: 'standard' 
 };
 
-let isEditingMode = false; // Track if we're editing an existing round
+let isEditingMode = false; 
+let confirmCallbacks = { onYes: null, onNo: null };
 
 // Phase descriptions
 const PHASE_DESCRIPTIONS = [
@@ -27,19 +28,66 @@ const PHASE_DESCRIPTIONS = [
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', () => {
-    initializeSetupScreen();
     attachEventListeners();
+    checkActiveSession(); 
 });
+
+// ===== Custom Modal System =====
+function showCustomAlert(message) {
+    document.getElementById('custom-alert-text').textContent = message;
+    document.getElementById('custom-alert-modal').style.display = 'flex';
+}
+
+function showCustomConfirm(message, onYes, onNo) {
+    document.getElementById('custom-confirm-text').textContent = message;
+    confirmCallbacks.onYes = onYes;
+    confirmCallbacks.onNo = onNo;
+    document.getElementById('custom-confirm-modal').style.display = 'flex';
+}
+
+// ===== FEATURE: Auto-Save Session =====
+function saveActiveSession() {
+    if (gameState.gameStarted) {
+        localStorage.setItem('phase10_active_session', JSON.stringify(gameState));
+    }
+}
+
+function clearActiveSession() {
+    localStorage.removeItem('phase10_active_session');
+}
+
+function checkActiveSession() {
+    const savedState = localStorage.getItem('phase10_active_session');
+    if (savedState) {
+        try {
+            const parsed = JSON.parse(savedState);
+            if (parsed && parsed.gameStarted) {
+                // Use Custom Confirm
+                showCustomConfirm("Resume active Phase 10 session?", 
+                    function() {
+                        gameState = parsed;
+                        document.getElementById('setup-screen').style.display = 'none';
+                        document.getElementById('home-screen').style.display = 'block';
+                        updateHomeScreen();
+                    }, 
+                    function() {
+                        clearActiveSession();
+                        initializeSetupScreen();
+                    }
+                );
+                return;
+            }
+        } catch (e) {
+            console.error("Failed parsing active session:", e);
+        }
+    }
+    initializeSetupScreen();
+}
 
 function initializeSetupScreen() {
     const playerInputs = document.getElementById('player-inputs');
     playerInputs.innerHTML = '';
-    
-    // Add 2 default player inputs
-    for (let i = 0; i < 2; i++) {
-        addPlayerInput();
-    }
-    
+    for (let i = 0; i < 2; i++) addPlayerInput();
     updateStartButton();
 }
 
@@ -48,7 +96,7 @@ function addPlayerInput() {
     const currentPlayers = document.querySelectorAll('.player-input-row').length;
     
     if (currentPlayers >= 6) {
-        alert('Maximum 6 players allowed');
+        showCustomAlert('Maximum 6 players allowed');
         return;
     }
     
@@ -68,7 +116,7 @@ function addPlayerInput() {
             playerRow.remove();
             updateStartButton();
         } else {
-            alert('Minimum 2 players required');
+            showCustomAlert('Minimum 2 players required');
         }
     };
     
@@ -85,18 +133,30 @@ function updateStartButton() {
     let allFilled = true;
     
     inputs.forEach(input => {
-        if (input.value.trim() === '') {
-            allFilled = false;
-        }
+        if (input.value.trim() === '') allFilled = false;
     });
     
     startBtn.disabled = !allFilled || inputs.length < 2;
 }
 
 function attachEventListeners() {
+    // Custom Modals
+    document.getElementById('custom-alert-ok-btn').addEventListener('click', () => {
+        document.getElementById('custom-alert-modal').style.display = 'none';
+    });
+    document.getElementById('custom-confirm-yes-btn').addEventListener('click', () => {
+        document.getElementById('custom-confirm-modal').style.display = 'none';
+        if (confirmCallbacks.onYes) confirmCallbacks.onYes();
+    });
+    document.getElementById('custom-confirm-no-btn').addEventListener('click', () => {
+        document.getElementById('custom-confirm-modal').style.display = 'none';
+        if (confirmCallbacks.onNo) confirmCallbacks.onNo();
+    });
+
     // Setup screen
     document.getElementById('add-player-btn').addEventListener('click', addPlayerInput);
     document.getElementById('start-game-btn').addEventListener('click', startGame);
+    document.getElementById('view-past-games-btn').addEventListener('click', showPastGamesModal);
     
     // Home screen
     document.getElementById('info-icon').addEventListener('click', showPhasesModal);
@@ -111,27 +171,20 @@ function attachEventListeners() {
     // Modals
     document.getElementById('close-modal-btn').addEventListener('click', hidePhasesModal);
     document.getElementById('close-history-btn').addEventListener('click', hideHistoryModal);
+    document.getElementById('close-past-games-btn').addEventListener('click', hidePastGamesModal);
     
     // Winner screen
     document.getElementById('new-game-btn').addEventListener('click', resetGame);
+    document.getElementById('share-btn').addEventListener('click', shareScreenshot);
+    document.getElementById('back-to-history-btn').addEventListener('click', backToHistoryFromWinner);
 }
 
 function generatePhaseOrder(type) {
     let order = [];
-    
     switch(type) {
-        case 'standard':
-            // Standard 1 to 10
-            order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-            break;
-            
-        case 'reverse':
-            // Reverse 10 to 1
-            order = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
-            break;
-            
+        case 'standard': order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; break;
+        case 'reverse': order = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]; break;
         case 'random':
-            // Random shuffle of 1-10
             order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
             for (let i = order.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -139,7 +192,6 @@ function generatePhaseOrder(type) {
             }
             break;
     }
-    
     return order;
 }
 
@@ -148,7 +200,6 @@ function startGame() {
     const phaseOrderRadios = document.getElementsByName('phaseOrder');
     let selectedPhaseType = 'standard';
     
-    // Get selected phase order
     for (let radio of phaseOrderRadios) {
         if (radio.checked) {
             selectedPhaseType = radio.value;
@@ -176,6 +227,8 @@ function startGame() {
     gameState.roundsHistory = [];
     isEditingMode = false;
     
+    saveActiveSession();
+    
     document.getElementById('setup-screen').style.display = 'none';
     document.getElementById('home-screen').style.display = 'block';
     
@@ -188,7 +241,6 @@ function updateHomeScreen() {
     
     dealerName.textContent = gameState.players[gameState.currentDealerIndex].name;
     
-    // Calculate current leader(s)
     const rankings = calculateRankings();
     const leaders = [];
     if (rankings.length > 0) {
@@ -207,8 +259,6 @@ function updateHomeScreen() {
         playerCard.className = 'player-card';
         
         const isLeader = leaders.includes(player.name);
-        
-        // Get actual phase number and description
         const currentPhaseNum = player.phase > 10 ? 10 : player.phase;
         const actualPhaseIndex = gameState.phaseOrder[currentPhaseNum - 1] - 1;
         const phaseDescription = PHASE_DESCRIPTIONS[actualPhaseIndex];
@@ -234,34 +284,21 @@ function showPhasesModal() {
     const modalContent = document.querySelector('#phases-modal > div');
     let phasesList = '<h3 style="margin-top: 0;">';
     
-    // Add title based on order type
     switch(gameState.phaseOrderType) {
-        case 'standard':
-            phasesList += 'Standard Phase Order (1→10)';
-            break;
-        case 'reverse':
-            phasesList += 'Reverse Phase Order (10→1)';
-            break;
-        case 'random':
-            phasesList += 'Random Phase Order';
-            break;
+        case 'standard': phasesList += 'Standard Phase Order (1→10)'; break;
+        case 'reverse': phasesList += 'Reverse Phase Order (10→1)'; break;
+        case 'random': phasesList += 'Random Phase Order'; break;
     }
     phasesList += '</h3><ol style="text-align: left; padding-left: 20px;">';
     
-    // Display phases in current order
     for (let i = 0; i < gameState.phaseOrder.length; i++) {
         const phaseNumber = gameState.phaseOrder[i];
         phasesList += `<li><strong>Phase ${i + 1}:</strong> ${PHASE_DESCRIPTIONS[phaseNumber - 1]}</li>`;
     }
     
     phasesList += '</ol><button id="close-modal-btn" class="yellow-button" style="width: 100%;">Close</button>';
-    
-    // Update modal content
     document.querySelector('#phases-modal > div').innerHTML = phasesList;
-    
-    // Re-attach close button event
     document.getElementById('close-modal-btn').addEventListener('click', hidePhasesModal);
-    
     document.getElementById('phases-modal').style.display = 'flex';
 }
 
@@ -278,15 +315,12 @@ function showHistoryModal() {
         roundCount.textContent = '';
     } else {
         let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
-        
-        // Show all rounds, most recent first
         const reversedRounds = [...gameState.roundsHistory].reverse();
         
         reversedRounds.forEach((round, index) => {
             const isLastRound = (index === 0);
             const actualRoundNumber = round.roundNumber;
             
-            // Find round winner(s)
             let minPoints = Math.min(...round.players.map(p => p.pointsEarned));
             const winners = round.players.filter(p => p.pointsEarned === minPoints).map(w => w.name);
             
@@ -305,7 +339,6 @@ function showHistoryModal() {
                 html += `<span>${player.pointsEarned} pts ${player.phaseCompleted ? '✓' : '✗'}</span>`;
                 html += `</div>`;
             });
-            
             html += `</div>`;
         });
         
@@ -320,7 +353,6 @@ function showHistoryModal() {
             });
         });
     }
-    
     document.getElementById('history-modal').style.display = 'flex';
 }
 
@@ -331,30 +363,21 @@ function hideHistoryModal() {
 function editLastRound(roundNumber) {
     if (roundNumber === gameState.roundNumber) {
         hideHistoryModal();
-        
-        // Find the round data
         const roundData = gameState.roundsHistory.find(r => r.roundNumber === roundNumber);
         if (!roundData) return;
         
-        // Set editing mode
         isEditingMode = true;
-        
-        // Revert player states to BEFORE this round
         revertPlayersToBeforeRound(roundNumber);
         
-        // Show round screen with pre-filled data
         document.getElementById('round-number').textContent = roundNumber;
         document.getElementById('home-screen').style.display = 'none';
         document.getElementById('round-screen').style.display = 'block';
         
-        // Build round input screen with pre-filled values
         const roundPlayersList = document.getElementById('round-players-list');
         roundPlayersList.innerHTML = '';
         
         gameState.players.forEach((player, index) => {
             const roundPlayerData = roundData.players.find(p => p.name === player.name);
-            
-            // Get phase description
             const currentPhaseNum = player.phase > 10 ? 10 : player.phase;
             const actualPhaseIndex = gameState.phaseOrder[currentPhaseNum - 1] - 1;
             const phaseDescription = PHASE_DESCRIPTIONS[actualPhaseIndex];
@@ -371,26 +394,25 @@ function editLastRound(roundNumber) {
                     <input type="checkbox" class="round-player-toggle" ${roundPlayerData && roundPlayerData.phaseCompleted ? 'checked' : ''}> Phase done
                 </label>
             `;
-            
             roundPlayersList.appendChild(playerRow);
         });
         
         document.getElementById('save-round-btn').disabled = false;
+        
+        const inputs = document.querySelectorAll('.round-player-input');
+        inputs.forEach(input => input.addEventListener('input', checkRoundInputs));
     } else {
-        alert('You can only edit the most recent round (Round ' + gameState.roundNumber + ')');
+        showCustomAlert(`You can only edit the most recent round (Round ${gameState.roundNumber})`);
     }
 }
 
 function revertPlayersToBeforeRound(roundNumber) {
-    // Reset all players
     gameState.players.forEach(p => {
         p.points = 0;
         p.phase = 1;
     });
     
-    // Reapply all rounds BEFORE the target round
     const roundsToApply = gameState.roundsHistory.filter(r => r.roundNumber < roundNumber);
-    
     roundsToApply.forEach(round => {
         round.players.forEach(roundPlayer => {
             const player = gameState.players.find(p => p.name === roundPlayer.name);
@@ -405,29 +427,24 @@ function revertPlayersToBeforeRound(roundNumber) {
 }
 
 function endGameImmediately() {
-    if (confirm('Are you sure you want to end the game? Current standings will determine the winner.')) {
+    showCustomConfirm('Are you sure you want to end the game? Current standings will determine the winner.', function() {
         const rankings = calculateRankings();
         const winners = [];
-        
         if (rankings.length > 0) {
             const topPhase = rankings[0].phase;
             const topPoints = rankings[0].points;
-            
             rankings.forEach(player => {
                 if (player.phase === topPhase && player.points === topPoints) {
                     winners.push(player);
                 }
             });
         }
-        
-        showWinner(winners);
-    }
+        showWinner(winners, 'manual', false);
+    }, null);
 }
 
 function showRoundScreen() {
-    // Determine target round number without mutating gameState prematurely
     const targetRoundNumber = isEditingMode ? gameState.roundNumber : gameState.roundNumber + 1;
-    
     document.getElementById('round-number').textContent = targetRoundNumber;
     
     const roundPlayersList = document.getElementById('round-players-list');
@@ -438,7 +455,6 @@ function showRoundScreen() {
         playerRow.className = 'round-player-row';
         playerRow.dataset.playerIndex = index;
         
-        // Get phase description for tooltip
         const currentPhaseNum = player.phase > 10 ? 10 : player.phase;
         const actualPhaseIndex = gameState.phaseOrder[currentPhaseNum - 1] - 1;
         const phaseDescription = PHASE_DESCRIPTIONS[actualPhaseIndex];
@@ -469,25 +485,19 @@ function showRoundScreen() {
 function checkRoundInputs() {
     const inputs = document.querySelectorAll('.round-player-input');
     let allFilled = true;
-    
     inputs.forEach(input => {
         if (input.value === '' || input.value < 0) {
             allFilled = false;
         }
     });
-    
     document.getElementById('save-round-btn').disabled = !allFilled;
 }
 
 function cancelRound() {
     if (isEditingMode) {
-        // If we were editing, we need to restore the original round data
         const originalRoundData = gameState.roundsHistory.find(r => r.roundNumber === gameState.roundNumber);
         if (originalRoundData) {
-            // Revert players to state BEFORE this round
             revertPlayersToBeforeRound(gameState.roundNumber);
-            
-            // Reapply the original round
             originalRoundData.players.forEach(roundPlayer => {
                 const player = gameState.players.find(p => p.name === roundPlayer.name);
                 if (player) {
@@ -498,10 +508,9 @@ function cancelRound() {
                 }
             });
         }
-        
         isEditingMode = false;
     }
-    
+    saveActiveSession(); 
     document.getElementById('round-screen').style.display = 'none';
     document.getElementById('home-screen').style.display = 'block';
     updateHomeScreen();
@@ -511,7 +520,6 @@ function saveRound() {
     const playerRows = document.querySelectorAll('.round-player-row');
     let phase10Completers = [];
     
-    // If saving a new round, increment state here
     if (!isEditingMode) {
         gameState.roundNumber++;
     }
@@ -536,7 +544,6 @@ function saveRound() {
         
         if (phaseCompleted) {
             gameState.players[playerIndex].phase++;
-            
             if (gameState.players[playerIndex].phase === 11) {
                 phase10Completers.push({
                     index: playerIndex,
@@ -547,24 +554,22 @@ function saveRound() {
     });
     
     if (isEditingMode) {
-        // Remove the old round data
         const indexToRemove = gameState.roundsHistory.findIndex(r => r.roundNumber === gameState.roundNumber);
         if (indexToRemove !== -1) {
             gameState.roundsHistory.splice(indexToRemove, 1);
         }
         isEditingMode = false;
     } else {
-        // Only rotate dealer for new rounds, not for edits
         gameState.currentDealerIndex = (gameState.currentDealerIndex + 1) % gameState.players.length;
     }
     
-    // Add the new/edited round data
     gameState.roundsHistory.push(roundData);
+    saveActiveSession(); 
     
     if (phase10Completers.length > 0) {
         phase10Completers.sort((a, b) => a.points - b.points);
         const winners = phase10Completers.map(c => gameState.players[c.index]);
-        showWinner(winners);
+        showWinner(winners, 'natural', false);
     } else {
         document.getElementById('round-screen').style.display = 'none';
         document.getElementById('home-screen').style.display = 'block';
@@ -585,51 +590,143 @@ function calculateRankings() {
         }
         return a.points - b.points;
     });
-    
     return playersForRanking;
 }
 
-function showWinner(winners) {
+// ===== MODIFIED: Supports detailed game metadata & History viewing =====
+function showWinner(winners, winType = 'natural', isHistorical = false, historicalData = null) {
     const winnerArray = Array.isArray(winners) ? winners : [winners];
-    const rankings = calculateRankings();
     
-    let rankingsHtml = '<div style="margin: 20px 0; text-align: left;">';
-    rankingsHtml += '<h3 style="text-align: center; margin-bottom: 10px;">Final Rankings</h3>';
-    rankingsHtml += '<table style="width: 100%; border-collapse: collapse;">';
-    rankingsHtml += '<tr style="background-color: #4CAF50; color: white;">';
-    rankingsHtml += '<th style="padding: 8px; border-radius: 5px 0 0 0;">Rank</th>';
-    rankingsHtml += '<th style="padding: 8px;">Player</th>';
-    rankingsHtml += '<th style="padding: 8px;">Phase</th>';
-    rankingsHtml += '<th style="padding: 8px; border-radius: 0 5px 0 0;">Points</th>';
-    rankingsHtml += '</tr>';
+    let rankingsHtml = '';
+    let gameMetaStr = '';
     
-    rankings.forEach((player, index) => {
-        const isWinner = winnerArray.some(w => w.name === player.name);
-        const rankColor = isWinner ? '#FFD700' : (index === 1 ? '#C0C0C0' : (index === 2 ? '#CD7F32' : '#f8f8f8'));
-        const medal = isWinner ? '🏆' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : ''));
-        
-        rankingsHtml += `<tr style="background-color: ${rankColor};">`;
-        rankingsHtml += `<td style="padding: 8px; text-align: center; font-weight: bold;">${index + 1} ${medal}</td>`;
-        rankingsHtml += `<td style="padding: 8px; ${isWinner ? 'font-weight: bold;' : ''}">${player.name}</td>`;
-        rankingsHtml += `<td style="padding: 8px; text-align: center;">${player.phase > 10 ? 10 : player.phase}</td>`;
-        rankingsHtml += `<td style="padding: 8px; text-align: center;">${player.points}</td>`;
-        rankingsHtml += '</tr>';
-    });
-    
-    rankingsHtml += '</table></div>';
-    
-    if (winnerArray.length === 1) {
-        document.getElementById('winner-name').textContent = winnerArray[0].name;
+    if (isHistorical && historicalData) {
+        rankingsHtml = historicalData.html;
+        gameMetaStr = historicalData.gameMeta;
     } else {
-        document.getElementById('winner-name').innerHTML = winnerArray.map(w => w.name).join('<br>');
+        // Construct Game Type String
+        const capMode = gameState.phaseOrderType.charAt(0).toUpperCase() + gameState.phaseOrderType.slice(1);
+        gameMetaStr = `Mode: ${capMode}`;
+        if (gameState.phaseOrderType === 'random' && gameState.phaseOrder.length > 0) {
+            gameMetaStr += ` | Order: ${gameState.phaseOrder.join(', ')}`;
+        }
+
+        // Construct HTML Leaderboard
+        const rankings = calculateRankings();
+        rankingsHtml = '<div style="margin: 20px 0; text-align: left;">';
+        rankingsHtml += '<h3 style="text-align: center; margin-bottom: 10px;">Final Rankings</h3>';
+        rankingsHtml += '<table style="width: 100%; border-collapse: collapse;">';
+        rankingsHtml += '<tr style="background-color: #4CAF50; color: white;">';
+        rankingsHtml += '<th style="padding: 8px; border-radius: 5px 0 0 0;">Rank</th>';
+        rankingsHtml += '<th style="padding: 8px;">Player</th>';
+        rankingsHtml += '<th style="padding: 8px;">Phase</th>';
+        rankingsHtml += '<th style="padding: 8px; border-radius: 0 5px 0 0;">Points</th>';
+        rankingsHtml += '</tr>';
+        
+        rankings.forEach((player, index) => {
+            const isWinner = winnerArray.some(w => w.name === player.name);
+            const rankColor = isWinner ? '#FFD700' : (index === 1 ? '#C0C0C0' : (index === 2 ? '#CD7F32' : '#f8f8f8'));
+            const medal = isWinner ? '🏆' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : ''));
+            
+            rankingsHtml += `<tr style="background-color: ${rankColor};">`;
+            rankingsHtml += `<td style="padding: 8px; text-align: center; font-weight: bold;">${index + 1} ${medal}</td>`;
+            rankingsHtml += `<td style="padding: 8px; ${isWinner ? 'font-weight: bold;' : ''}">${player.name}</td>`;
+            rankingsHtml += `<td style="padding: 8px; text-align: center;">${player.phase > 10 ? 10 : player.phase}</td>`;
+            rankingsHtml += `<td style="padding: 8px; text-align: center;">${player.points}</td>`;
+            rankingsHtml += '</tr>';
+        });
+        rankingsHtml += '</table></div>';
     }
-    document.getElementById('final-score').innerHTML = rankingsHtml;
     
+    // Set UI elements
+    if (winnerArray.length === 1) {
+        document.getElementById('winner-name').textContent = winnerArray[0].name || winnerArray[0];
+    } else {
+        document.getElementById('winner-name').innerHTML = winnerArray.map(w => w.name || w).join('<br>');
+    }
+    
+    document.getElementById('winner-game-meta').textContent = gameMetaStr;
+    document.getElementById('final-score').innerHTML = rankingsHtml;
+
+    const badge = document.getElementById('win-badge');
+    badge.style.display = 'inline-block';
+    badge.textContent = winType === 'natural' ? 'Natural Finish (Phase 10)' : 'Manual End';
+    badge.style.backgroundColor = winType === 'natural' ? '#4CAF50' : '#9C27B0';
+    badge.style.color = 'white';
+
     document.getElementById('round-screen').style.display = 'none';
     document.getElementById('home-screen').style.display = 'none';
+    document.getElementById('setup-screen').style.display = 'none';
     document.getElementById('winner-screen').style.display = 'block';
     
-    startConfetti();
+    if (isHistorical) {
+        document.getElementById('new-game-btn').style.display = 'none';
+        document.getElementById('back-to-history-btn').style.display = 'block';
+    } else {
+        document.getElementById('new-game-btn').style.display = 'block';
+        document.getElementById('back-to-history-btn').style.display = 'none';
+        
+        // Save to Database Object
+        const record = {
+            id: Date.now(),
+            date: new Date().toLocaleDateString(),
+            winners: winnerArray.map(w => w.name),
+            winType: winType,
+            gameMeta: gameMetaStr,
+            html: rankingsHtml
+        };
+        const pastGames = JSON.parse(localStorage.getItem('phase10_past_games') || '[]');
+        pastGames.unshift(record);
+        localStorage.setItem('phase10_past_games', JSON.stringify(pastGames));
+        
+        clearActiveSession();
+        startConfetti();
+    }
+}
+
+// ===== FEATURE: Past Games Database Modal =====
+function showPastGamesModal() {
+    const listEl = document.getElementById('past-games-list');
+    const pastGames = JSON.parse(localStorage.getItem('phase10_past_games') || '[]');
+    
+    if (pastGames.length === 0) {
+        listEl.innerHTML = '<p style="text-align: center; color: #666;">No completed games found.</p>';
+    } else {
+        listEl.innerHTML = '';
+        pastGames.forEach(game => {
+            const isNat = game.winType === 'natural';
+            const card = document.createElement('div');
+            card.className = `past-game-card ${isNat ? 'natural' : 'manual'}`;
+            
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <strong>${game.winners.join(' & ')} won!</strong>
+                    <span style="font-size: 11px; font-weight: bold; color: ${isNat ? '#2e7d32' : '#7b1fa2'};">
+                        ${isNat ? 'NATURAL' : 'MANUAL'}
+                    </span>
+                </div>
+                <div style="color: #555; font-size: 12px; margin-bottom: 4px;">${game.gameMeta || ''}</div>
+                <div style="color: #888; font-size: 12px;">Date: ${game.date}</div>
+            `;
+            
+            card.addEventListener('click', () => {
+                hidePastGamesModal();
+                showWinner(game.winners, game.winType, true, { html: game.html, gameMeta: game.gameMeta });
+            });
+            listEl.appendChild(card);
+        });
+    }
+    document.getElementById('past-games-modal').style.display = 'flex';
+}
+
+function hidePastGamesModal() {
+    document.getElementById('past-games-modal').style.display = 'none';
+}
+
+function backToHistoryFromWinner() {
+    document.getElementById('winner-screen').style.display = 'none';
+    document.getElementById('setup-screen').style.display = 'block';
+    showPastGamesModal();
 }
 
 function startConfetti() {
@@ -655,7 +752,6 @@ function startConfetti() {
     
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
         confetti.forEach(c => {
             ctx.beginPath();
             ctx.lineWidth = c.r;
@@ -664,7 +760,6 @@ function startConfetti() {
             ctx.lineTo(c.x + c.tilt, c.y + c.tilt + c.r * 2);
             ctx.stroke();
         });
-        
         update();
     }
     
@@ -674,7 +769,6 @@ function startConfetti() {
             c.x += Math.sin(c.d) * 2;
             c.tiltAngle += 0.1;
             c.tilt = Math.sin(c.tiltAngle) * 5;
-            
             if (c.y > canvas.height) {
                 c.y = -10;
                 c.x = Math.random() * canvas.width;
@@ -683,7 +777,6 @@ function startConfetti() {
     }
     
     const interval = setInterval(draw, 30);
-    
     setTimeout(() => {
         clearInterval(interval);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -702,20 +795,86 @@ function resetGame() {
     };
     
     isEditingMode = false;
-    
     document.getElementById('winner-screen').style.display = 'none';
     document.getElementById('setup-screen').style.display = 'block';
     
-    // Reset radio button to standard
     const radios = document.getElementsByName('phaseOrder');
     for (let radio of radios) {
-        if (radio.value === 'standard') {
-            radio.checked = true;
-        }
+        if (radio.value === 'standard') radio.checked = true;
     }
     
     const canvas = document.getElementById('confetti-canvas');
     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
     
     initializeSetupScreen();
+}
+
+// ===== FEATURE: Share / Download Screenshot via Capacitor or Web =====
+async function shareScreenshot() {
+    try {
+        const targetEl = document.getElementById('winner-card-capture') || document.body;
+        // Use a slightly lower scale for web performance, ensure white background
+        const canvas = await html2canvas(targetEl, { scale: 2, backgroundColor: '#FFFFFF' });
+        const dataUrl = canvas.toDataURL('image/png');
+        const fileName = `phase10_win_${Date.now()}.png`;
+
+        const Filesystem = window.Capacitor?.Plugins?.Filesystem;
+        const Share = window.Capacitor?.Plugins?.Share;
+
+        // 1. Try Native Capacitor Share (Android/iOS App)
+        if (Filesystem && Share) {
+            const base64Data = dataUrl.replace(/^data:image\/png;base64,/, "");
+            
+            await Filesystem.writeFile({
+                path: fileName,
+                data: base64Data,
+                directory: 'CACHE'
+            });
+
+            const uriResult = await Filesystem.getUri({
+                directory: 'CACHE',
+                path: fileName
+            });
+
+            await Share.share({
+                title: 'Phase 10 Match Result',
+                text: 'Check out who won our Phase 10 match!',
+                url: uriResult.uri,
+                dialogTitle: 'Share Winner Card'
+            });
+            return; // Stop here if native worked
+        } 
+        
+        // 2. Try Web Share API (Mobile Web Browsers like iOS Safari)
+        if (navigator.share) {
+            try {
+                const blob = await (await fetch(dataUrl)).blob();
+                const file = new File([blob], fileName, { type: 'image/png' });
+                
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Phase 10 Match Result'
+                    });
+                    return; // Stop here if web share worked
+                }
+            } catch (e) {
+                console.log("Web share cancelled or unsupported, falling back to download...");
+            }
+        }
+
+        // 3. Fallback: Download Image directly (Desktop Browsers / Unsupported Web)
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showCustomAlert("Screenshot saved to your device downloads!");
+
+    } catch (error) {
+        console.error('Error sharing/downloading screenshot:', error);
+        showCustomAlert("Could not process screenshot.");
+    }
 }
