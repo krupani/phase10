@@ -12,8 +12,12 @@
     <div class="container" id="app">
         <!-- Setup Screen -->
         <div id="setup-screen" class="screen">
-            <h1 id="main-word">Phase 10 Scoring</h1>
-            <p>Enter player names in seating order (max 6)</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h1 id="main-word" style="margin: 0;">Phase 10 Scoring</h1>
+                <button id="view-past-games-btn" class="yellow-button" style="padding: 8px 12px; font-size: 14px; margin: 0;">📜 Past Games</button>
+            </div>
+            
+            <p style="margin-top:0;">Enter player names in seating order (max 6)</p>
             <p style="font-size: 14px; color: #666;">* Dealer rotates based on this order</p>
 
             <div id="player-inputs">
@@ -28,8 +32,7 @@
                 <div style="display: flex; justify-content: space-around; gap: 10px;">
                     <label
                         style="flex: 1; padding: 10px; background-color: #4CAF50; color: white; border-radius: 5px; cursor: pointer;">
-                        <input type="radio" name="phaseOrder" value="standard" checked style="margin-right: 5px;"> 🔄
-                        Standard
+                        <input type="radio" name="phaseOrder" value="standard" checked style="margin-right: 5px;"> 🔄 Standard
                     </label>
                     <label
                         style="flex: 1; padding: 10px; background-color: #FF9800; color: white; border-radius: 5px; cursor: pointer;">
@@ -47,8 +50,7 @@
 
             <br />
             <div id="author">
-                <div>Made with &hearts; by <a href="https://linkedin.com/in/kushrupani" target="_blank">Kaushal
-                        Rupani</a></div>
+                <div>Made with &hearts; by <a href="https://linkedin.com/in/kushrupani" target="_blank">Kaushal Rupani</a></div>
             </div>
         </div>
 
@@ -78,8 +80,7 @@
             </div>
             <br />
             <div id="author">
-                <div>Made with &hearts; by <a href="https://linkedin.com/in/kushrupani" target="_blank">Kaushal
-                        Rupani</a></div>
+                <div>Made with &hearts; by <a href="https://linkedin.com/in/kushrupani" target="_blank">Kaushal Rupani</a></div>
             </div>
         </div>
 
@@ -98,30 +99,35 @@
             <br />
             <br />
             <div id="author">
-                <div>Made with &hearts; by <a href="https://linkedin.com/in/kushrupani" target="_blank">Kaushal
-                        Rupani</a></div>
+                <div>Made with &hearts; by <a href="https://linkedin.com/in/kushrupani" target="_blank">Kaushal Rupani</a></div>
             </div>
         </div>
 
         <!-- Winner Screen -->
         <div id="winner-screen" class="screen" style="display: none;">
-            <h1 id="main-word" style="font-size: 40px;">🏆 Winner! 🏆</h1>
-            <div id="winner-name" style="font-size: 48px; font-weight: bold; margin: 20px 0;"></div>
-            <div id="final-score" style="font-size: 24px; margin: 20px 0;"></div>
-            <button id="new-game-btn" class="green-button" style="margin-top: 30px;">New Game</button>
-            <br />
+            <div id="winner-card-capture" style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 15px; position: relative;">
+                <div id="win-badge" style="display: none; padding: 6px 12px; border-radius: 15px; font-size: 13px; font-weight: bold; margin-bottom: 15px;"></div>
+                <h1 id="main-word" style="font-size: 40px; margin-top: 0;">🏆 Winner! 🏆</h1>
+                <div id="winner-name" style="font-size: 48px; font-weight: bold; margin: 10px 0;"></div>
+                <div id="winner-game-meta" style="font-size: 13px; color: #555; background: #f4f4f4; padding: 8px; border-radius: 8px; margin: 15px 0;"></div>
+                <div id="final-score" style="font-size: 24px; margin: 20px 0;"></div>
+            </div>
+
+            <div class="buttons" style="flex-direction: column; gap: 10px;">
+                <button id="share-btn" class="yellow-button" style="width: 100%;">📤 Share Screenshot</button>
+                <button id="new-game-btn" class="green-button" style="width: 100%;">New Game</button>
+                <button id="back-to-history-btn" class="yellow-button" style="display: none; width: 100%;">Back to Archives</button>
+            </div>
             <br />
             <div id="author">
-                <div>Made with &hearts; by <a href="https://linkedin.com/in/kushrupani" target="_blank">Kaushal
-                        Rupani</a></div>
+                <div>Made with &hearts; by <a href="https://linkedin.com/in/kushrupani" target="_blank">Kaushal Rupani</a></div>
             </div>
         </div>
 
         <!-- Phases Info Modal -->
         <div id="phases-modal"
             style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;">
-            <div
-                style="background: white; padding: 20px; border-radius: 10px; max-width: 300px; max-height: 80%; overflow-y: auto;">
+            <div style="background: white; padding: 20px; border-radius: 10px; max-width: 300px; max-height: 80%; overflow-y: auto;">
                 <h3 style="margin-top: 0;">Phase 10 Phases</h3>
                 <ol style="text-align: left; padding-left: 20px;">
                     <li><strong>Phase 1:</strong> 2 sets of 3</li>
@@ -139,11 +145,10 @@
             </div>
         </div>
 
-        <!-- History Modal -->
+        <!-- History Modal (Current Game Rounds) -->
         <div id="history-modal"
             style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;">
-            <div
-                style="background: white; padding: 20px; border-radius: 10px; max-width: 90%; width: 450px; max-height: 80%; overflow-y: auto;">
+            <div style="background: white; padding: 20px; border-radius: 10px; max-width: 90%; width: 450px; max-height: 80%; overflow-y: auto;">
                 <h3 style="margin-top: 0; display: flex; justify-content: space-between; align-items: center;">
                     Rounds History
                     <span id="history-round-count" style="font-size: 14px; color: #666;"></span>
@@ -151,20 +156,49 @@
                 <div id="history-content" style="text-align: left;">
                     <!-- History cards will be inserted here -->
                 </div>
-                <div
-                    style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 5px; font-size: 12px; color: #856404;">
+                <div style="margin-top: 15px; padding: 10px; background-color: #fff3cd; border-radius: 5px; font-size: 12px; color: #856404;">
                     ⓘ Tap on a round card to edit the last round
                 </div>
-                <button id="close-history-btn" class="yellow-button"
-                    style="width: 100%; margin-top: 15px;">Close</button>
+                <button id="close-history-btn" class="yellow-button" style="width: 100%; margin-top: 15px;">Close</button>
+            </div>
+        </div>
+        
+        <!-- Past Games Archive Modal -->
+        <div id="past-games-modal"
+            style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000;">
+            <div style="background: white; padding: 20px; border-radius: 10px; max-width: 90%; width: 450px; max-height: 80%; overflow-y: auto;">
+                <h3 style="margin-top: 0;">Past Games Archive</h3>
+                <div id="past-games-list" style="text-align: left; display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Archived games inserted here -->
+                </div>
+                <button id="close-past-games-btn" class="yellow-button" style="width: 100%; margin-top: 15px;">Close</button>
+            </div>
+        </div>
+
+        <!-- Custom Alert Modal -->
+        <div id="custom-alert-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 2000;">
+            <div style="background: white; padding: 25px; border-radius: 10px; max-width: 300px; width: 90%; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                <p id="custom-alert-text" style="margin-top: 0; margin-bottom: 20px; font-size: 16px;"></p>
+                <button id="custom-alert-ok-btn" class="yellow-button" style="width: 100%; margin: 0;">OK</button>
+            </div>
+        </div>
+
+        <!-- Custom Confirm Modal -->
+        <div id="custom-confirm-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 2000;">
+            <div style="background: white; padding: 25px; border-radius: 10px; max-width: 300px; width: 90%; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                <p id="custom-confirm-text" style="margin-top: 0; margin-bottom: 20px; font-size: 16px;"></p>
+                <div style="display: flex; gap: 10px;">
+                    <button id="custom-confirm-yes-btn" class="green-button" style="flex: 1; margin: 0;">Yes</button>
+                    <button id="custom-confirm-no-btn" class="red-button" style="flex: 1; margin: 0;">No</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Confetti Canvas -->
-    <canvas id="confetti-canvas"
-        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999;">
-    </canvas>
+    <!-- Confetti Canvas & Scripts -->
+    <canvas id="confetti-canvas" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999;"></canvas>
+    
+    <script src="html2canvas.min.js"></script>
     <script src="script.js"></script>
 </body>
 
